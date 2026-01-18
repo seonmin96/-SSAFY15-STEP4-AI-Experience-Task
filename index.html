@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <title>My Study Diary</title>
+    <style>
+        :root {
+            --primary: #FFD93D; 
+            --bg: #FFFDF2;
+            --white: #ffffff;
+            --text: #5D4037;
+            --gray: #95a5a6;
+            --accent: #A8E4A0;
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        * { box-sizing: border-box; font-family: 'Gowun Dodum', sans-serif; letter-spacing: -0.02em;}
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 0; word-break: keep-all; line-height: 1.6;}
+        .hidden { display: none !important; }
+
+        /* --- 네비게이션 --- */
+        nav {
+            background: var(--white); padding: 15px 5%; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100;
+        }
+        .logo { font-size: 1.2rem; font-weight: 800; color: var(--primary); cursor: pointer; }
+        .nav-right { display: flex; align-items: center; gap: 8px; }
+
+        /* --- 검색 패널 --- */
+        #filterPanel {
+            background: var(--white); padding: 15px 5%; border-bottom: 1px solid #eee;
+            display: none; gap: 10px; justify-content: center;
+        }
+
+        /* --- 레이아웃 --- */
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .section-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); margin: 40px 0 20px 0; }
+
+        /* --- 다이어리 카드 --- */
+        .diary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .diary-card { 
+            background: var(--white); padding: 22px; border-radius: 16px; box-shadow: var(--shadow);
+            transition: 0.2s; cursor: pointer; border-top: 4px solid transparent;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .diary-card:hover { transform: translateY(-5px); border-top: 4px solid var(--primary); }
+        .card-date { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+        .card-quote { 
+            font-style: italic; font-weight: 500; color: var(--gray); font-size: 0.95rem;
+            line-height: 1.4; border-left: 3px solid #eee; padding-left: 10px; margin: 5px 0;
+        }
+        .card-todo-list { list-style: none; padding: 0; margin: 5px 0; border-top: 1px solid #f9f9f9; padding-top: 10px; }
+        .card-todo-item { font-size: 0.95rem; color: #666; display: flex; align-items: center; gap: 5px; margin-bottom: 3px; font-weight:500; }
+        .card-todo-item.done { text-decoration: line-through; color: #ccc; }
+        .card-achieve { font-size: 0.85rem; font-weight: bold; color: var(--accent); margin-top: auto; }
+
+        /* --- 잔디 --- */
+        .heatmap-card { background: var(--white); padding: 25px; border-radius: 16px; box-shadow: var(--shadow); overflow-x: auto; }
+        .heatmap-grid { display: grid; grid-template-columns: repeat(53, 13px); grid-template-rows: repeat(7, 13px); gap: 4px; width: max-content; }
+        .day-cell { width: 13px; height: 13px; border-radius: 2px; background: #ebedf0; cursor: pointer; position: relative; }
+        .day-cell:hover::after {
+            content: attr(data-date); position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+            background: #333; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; z-index: 10;
+        }
+
+        /* --- To-Do List 디자인 --- */
+        .todo-list { max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px !important; }
+        .todo-item { 
+            display: flex !important; align-items: center !important; justify-content: space-between !important; 
+            background: #f9f9f9; padding: 10px 12px !important; border-radius: 10px !important; 
+            margin-bottom: 8px !important; border: 1px solid #eee !important; width: 100% !important; box-sizing: border-box !important; 
+        }
+        .todo-content-left { display: flex !important; align-items: center !important; gap: 12px !important; flex: 1 !important; }
+        .todo-item input[type="checkbox"] { width: 18px !important; height: 18px !important; margin: 0 !important; }
+        .todo-item span.completed { text-decoration: line-through !important; color: var(--gray) !important; }
+        .todo-del-btn { border: none; background: none; color: #ff6b6b; font-weight: bold; cursor: pointer; padding-left: 10px; }
+
+        /* --- 모달 --- */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--white); width: 90%; max-width: 500px; padding: 30px; border-radius: 20px; max-height: 90vh; overflow-y: auto; }
+        
+        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; outline: none; }
+        .btn-main { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-sub { background: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-add-float { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; box-shadow: 0 5px 15px rgba(0,86,102,0.3); z-index: 99; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo" onclick="location.reload()">STUDY PLANNER 🐣</div>
+    <div class="nav-right" id="authNav">
+        <input type="text" id="loginId" placeholder="ID" style="width:80px; margin:0;">
+        <input type="password" id="loginPw" placeholder="PW" style="width:80px; margin:0;">
+        <button class="btn-main" onclick="login()">Login</button>
+        <button class="btn-sub" onclick="signup()">Join</button>
+    </div>
+    <div class="nav-right hidden" id="userNav">
+        <span id="searchTrigger" style="cursor:pointer;">🔍</span>
+        <span id="userWelcome" style="font-weight: bold; font-size: 0.9rem;"></span>
+        <button onclick="logout()" style="background:none; border:none; color:var(--gray); cursor:pointer; font-size: 0.8rem;">Logout</button>
+    </div>
+</nav>
+
+<div id="filterPanel">
+    <input type="date" id="searchDate" onchange="renderList()" style="width:auto;">
+    <input type="text" id="searchText" placeholder="검색어 입력..." onkeyup="renderList()" style="width:180px;">
+    <select id="filterAchieve" onchange="renderList()" style="width:auto;">
+        <option value="all">전체 달성률</option>
+        <option value="high">80% 이상</option>
+        <option value="low">50% 미만</option>
+    </select>
+</div>
+
+<div class="container">
+    <div id="loggedOutMsg" style="text-align: center; margin-top: 100px;">
+        <h2>공부를 기록하고 성장하세요.</h2>
+        <p style="color:var(--gray);">로그인 후 나만의 다이어리를 시작할 수 있습니다.</p>
+    </div>
+
+<div id="adminSection" class="hidden">
+    <div class="section-title" style="color: #e67e22;"> 👑 USER MANAGEMENT (ADMIN) </div>
+    <div class="heatmap-card" style="margin-bottom: 30px; border-top: 4px solid #e67e22;">
+        <table id="userTable" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 2px solid #eee;">
+                    <th style="padding: 10px;">ID</th>
+                    <th style="padding: 10px;">Password</th>
+                    <th style="padding: 10px;">기록 수</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+    <div id="mainSection" class="hidden">
+        <div class="section-title"> ✨ STUDY HISTORY </div>
+        <div class="diary-grid" id="diaryGrid"></div>
+        <div class="section-title"> 🌱 2026 ACHIEVEMENT </div>
+        <div class="heatmap-card">
+            <div class="heatmap-grid" id="heatmap"></div>
+        </div>
+    </div>
+</div>
+
+<div id="diaryModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="margin-top:0;">오늘의 기록</h3>
+        <input type="hidden" id="editEntryId">
+        <label style="font-size:0.8rem; font-weight:bold;">날짜</label>
+        <input type="date" id="dateInput">
+        <label style="font-size:0.8rem; font-weight:bold;">오늘의 목표</label>
+        <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <input type="text" id="todoInput" placeholder="할 일 입력" onkeypress="if(event.keyCode==13) addTodo()" style="margin:0;">
+            <button onclick="addTodo()" class="btn-main">+</button>
+        </div>
+        <div id="todoList" class="todo-list"></div>
+        <label style="font-size:0.8rem; font-weight:bold;">달성률 (%)</label>
+        <input type="number" id="achieve" min="0" max="100">
+        <label style="font-size:0.8rem; font-weight:bold;">한마디</label>
+        <textarea id="tdyQuote" rows="2" placeholder="오늘 어땠나요?"></textarea>
+        <div style="display:flex; justify-content: space-between; margin-top:20px;">
+            <div id="deleteBtnArea"></div>
+            <div>
+                <button class="btn-main" onclick="saveEntry()">저장</button>
+                <button onclick="closeModal()" style="padding:12px; background:none; border:none; cursor:pointer; color:var(--gray);">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button class="btn-main btn-add-float hidden" id="addBtn" onclick="openAddModal()">+</button>
+
+<script>
+    let currentUser = null;
+    let currentTodos = [];
+
+    // 회원가입 함수
+    function signup() {
+        const id = document.getElementById('loginId').value.trim();
+        const pw = document.getElementById('loginPw').value.trim();
+        if(!id || !pw) return alert('ID와 PW를 모두 입력하세요!');
+        
+        let users = JSON.parse(localStorage.getItem('my_diary_users') || '[]');
+        if(users.find(u => u.id === id)) return alert('이미 존재하는 ID입니다.');
+        
+        users.push({ id, pw });
+        localStorage.setItem('my_diary_users', JSON.stringify(users));
+        alert('회원가입 완료! 이제 로그인하세요.');
+    }
+
+    // 로그인 함수
+    function login() {
+        const id = document.getElementById('loginId').value.trim();
+        const pw = document.getElementById('loginPw').value.trim();
+        let users = JSON.parse(localStorage.getItem('my_diary_users') || '[]');
+        const user = users.find(u => u.id === id && u.pw === pw);
+        
+        if(!user) return alert('아이디 또는 비밀번호가 틀립니다.');
+        
+        currentUser = user;
+        document.getElementById('authNav').classList.add('hidden');
+        document.getElementById('userNav').classList.remove('hidden');
+        document.getElementById('userWelcome').innerText = `${id}님`;
+        document.getElementById('mainSection').classList.remove('hidden');
+        document.getElementById('loggedOutMsg').classList.add('hidden');
+        document.getElementById('addBtn').classList.remove('hidden');
+
+// --- [추가: 관리자 체크] ---
+    if(id === 'admin') {
+        document.getElementById('adminSection').classList.remove('hidden');
+        renderUserTable();
+    } else {
+        document.getElementById('adminSection').classList.add('hidden');
+    }
+    // -------------------------
+
+        renderList(); renderHeatmap();
+    }
+
+    function logout() { location.reload(); }
+
+    // 기존 렌더링 함수들 (이전과 동일하게 유지)
+    document.getElementById('searchTrigger').onclick = () => {
+        const panel = document.getElementById('filterPanel');
+        panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
+    };
+
+    function addTodo() {
+        const input = document.getElementById('todoInput');
+        if(!input.value.trim()) return;
+        currentTodos.push({ text: input.value, completed: false });
+        input.value = ''; renderTodos();
+    }
+
+    function renderTodos() {
+        const listEl = document.getElementById('todoList');
+        listEl.innerHTML = currentTodos.map((t, i) => `
+            <div class="todo-item">
+                <div class="todo-content-left">
+                    <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="currentTodos[${i}].completed=!currentTodos[${i}].completed; renderTodos();">
+                    <span class="${t.completed ? 'completed' : ''}">${t.text}</span>
+                </div>
+                <button class="todo-del-btn" onclick="currentTodos.splice(${i},1); renderTodos();">삭제</button>
+            </div>
+        `).join('');
+    }
+
+    function openAddModal() {
+        document.getElementById('modalTitle').innerText = "새 기록 추가";
+        document.getElementById('editEntryId').value = "";
+        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+        document.getElementById('tdyQuote').value = ""; document.getElementById('achieve').value = "";
+        currentTodos = []; renderTodos();
+        document.getElementById('deleteBtnArea').innerHTML = "";
+        document.getElementById('diaryModal').style.display = "flex";
+    }
+
+    function openEditModal(id) {
+        const diaries = JSON.parse(localStorage.getItem('my_study_diary') || '[]');
+        const entry = diaries.find(d => d.id == id);
+        if(!entry) return;
+        document.getElementById('modalTitle').innerText = "기록 수정";
+        document.getElementById('editEntryId').value = entry.id;
+        document.getElementById('dateInput').value = entry.date;
+        document.getElementById('tdyQuote').value = entry.tdyQuote;
+        document.getElementById('achieve').value = entry.achieve;
+        currentTodos = entry.todos || []; renderTodos();
+        document.getElementById('deleteBtnArea').innerHTML = `<button onclick="deleteEntry(${id})" style="color:red; background:none; border:none; cursor:pointer;">기록 삭제</button>`;
+        document.getElementById('diaryModal').style.display = "flex";
+    }
+
+    function closeModal() { document.getElementById('diaryModal').style.display = "none"; }
+
+    function saveEntry() {
+        const id = document.getElementById('editEntryId').value;
+        let diaries = JSON.parse(localStorage.getItem('my_study_diary') || '[]');
+        const newEntry = {
+            id: id ? Number(id) : Date.now(),
+            userId: currentUser.id,
+            date: document.getElementById('dateInput').value,
+            tdyQuote: document.getElementById('tdyQuote').value,
+            todos: currentTodos,
+            achieve: parseInt(document.getElementById('achieve').value || 0)
+        };
+        if(id) { const idx = diaries.findIndex(d => d.id == id); diaries[idx] = newEntry; }
+        else { diaries.push(newEntry); }
+        localStorage.setItem('my_study_diary', JSON.stringify(diaries));
+        closeModal(); renderList(); renderHeatmap();
+    }
+
+    function deleteEntry(id) {
+        if(!confirm('삭제할까요?')) return;
+        let diaries = JSON.parse(localStorage.getItem('my_study_diary') || '[]');
+        localStorage.setItem('my_study_diary', JSON.stringify(diaries.filter(d => d.id != id)));
+        closeModal(); renderList(); renderHeatmap();
+    }
+
+    function renderList() {
+        const grid = document.getElementById('diaryGrid');
+        const diaries = JSON.parse(localStorage.getItem('my_study_diary') || '[]');
+        let filtered = diaries.filter(d => d.userId === currentUser.id);
+
+	// 날짜 정렬
+	filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        // 검색 필터 적용
+        const sDate = document.getElementById('searchDate').value;
+        const sText = document.getElementById('searchText').value.toLowerCase();
+        const sAch = document.getElementById('filterAchieve').value;
+        if(sDate) filtered = filtered.filter(d => d.date === sDate);
+        if(sText) filtered = filtered.filter(d => d.tdyQuote.toLowerCase().includes(sText));
+        if(sAch === 'high') filtered = filtered.filter(d => d.achieve >= 80);
+        if(sAch === 'low') filtered = filtered.filter(d => d.achieve < 50);
+
+        grid.innerHTML = filtered.map(d => {
+            const todoHtml = (d.todos || []).slice(0, 3).map(t => `
+                <div class="card-todo-item ${t.completed ? 'done' : ''}">
+                    ${t.completed ? '✅' : '⬜'} ${t.text}
+                </div>
+            `).join('');
+            return `
+                <div class="diary-card" onclick="openEditModal(${d.id})">
+                    <div class="card-date">${d.date}</div>
+                    <div class="card-quote">"${d.tdyQuote || '오늘의 한마디가 없습니다.'}"</div>
+                    <div class="card-todo-list">${todoHtml || '<div style="color:#ccc; font-size:0.8rem;">할 일이 없습니다.</div>'}</div>
+                    <div class="card-achieve">${d.achieve}% 완료</div>
+                </div>`;
+        }).join('');
+    }
+
+    function renderHeatmap() {
+        const heatmap = document.getElementById('heatmap');
+        heatmap.innerHTML = '';
+        const diaries = JSON.parse(localStorage.getItem('my_study_diary') || '[]');
+        const myData = diaries.filter(d => d.userId === currentUser.id);
+        const year = 2026;
+        const startDate = new Date(year, 0, 1);
+        const dayOfWeek = startDate.getDay();
+        for (let i = 0; i < 371; i++) {
+            const current = new Date(year, 0, 1);
+            current.setDate(current.getDate() + (i - dayOfWeek));
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+	    cell.style.background = '#F9F9F9';
+            if (current.getFullYear() === year) {
+                const dateStr = current.toISOString().split('T')[0];
+                cell.setAttribute('data-date', dateStr);
+
+		const today = new Date().toISOString().split('T')[0];
+		if(dateStr === today){
+			cell.style.border = '2px solid #FF8400';
+			cell.style.boxShadow = '0 0 8px #FFD93D';
+		}
+                const entry = myData.find(d => d.date === dateStr);
+                if(entry) {
+                    const ach = entry.achieve;
+		    if(ach == 100) cell.style.background = '#FF8400';
+                    else if (ach >= 80) cell.style.background = '#FFD93D';
+                    else if (ach >= 40) cell.style.background = '#FFF1B0';
+                    else cell.style.background = '#FFFBE7';
+                }
+            } else { cell.style.visibility = 'hidden'; }
+            heatmap.appendChild(cell);
+        }
+	// 오늘 날짜 칸을 찾아서 그 위치로 부드럽게 스크롤!
+	const todayStr = new Date().toISOString().split('T')[0];
+	const todayCell = heatmap.querySelector(`[data-date="${todayStr}"]`);
+	if (todayCell) {
+	    setTimeout(() => {
+	        todayCell.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+	    }, 300);
+	}
+    }
+
+// 유저 목록 렌더링 함수
+function renderUserTable() {
+    const users = JSON.parse(localStorage.getItem('my_diary_users') || '[]');
+    const diaries = JSON.parse(localStorage.getItem('my_study_diary') || '[]');
+    const tbody = document.getElementById('userTableBody');
+    
+    tbody.innerHTML = users.map(u => {
+        // 각 유저별로 작성한 게시글 수를 계산합니다.
+        const postCount = diaries.filter(d => d.userId === u.id).length;
+        return `
+            <tr style="border-bottom: 1px solid #f9f9f9;">
+                <td style="padding: 10px; font-weight: bold;">${u.id}</td>
+                <td style="padding: 10px; color: #ccc;">${u.pw}</td>
+                <td style="padding: 10px;">${postCount}개</td>
+            </tr>
+        `;
+    }).join('');
+}
+</script>
+</body>
+</html>
